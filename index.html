@@ -727,16 +727,13 @@ const doLogout=()=>{clearSession();adminToken=null;communityLinks=[];render();se
 $('logoutBtn').onclick=doLogout;
 $('headerLogoutBtn').onclick=doLogout;
 function openOwnerSettings(){
- if(!loggedInUser || loggedInUser.toLowerCase()!=="blueinferno"){
-   alert("Log in as Blueinferno to access website customization.");
-   setTab("account");return;
+ if(!adminToken){
+   alert("Unlock the Admin panel with your admin code first, then open Customization again.");
+   $("adminCodeInput").value="";$("adminTools").classList.add("hidden");$("adminDialog").showModal();return;
  }
- if(ownerUnlocked){showSettings();return;}
- $("pinTitle").textContent=data.pinHash?"Unlock customization":"Set up owner PIN";
- $("pinHelp").textContent=data.pinHash?"Enter your owner PIN to edit the website.":"Create your owner PIN to unlock website editing.";
- $("pinInput").value="";$("pinSubmit").textContent=data.pinHash?"Unlock":"Create PIN";$("pinDialog").showModal()
+ ownerUnlocked=true;showSettings();
 }
-$("pinForm").onsubmit=async e=>{e.preventDefault();let p=$("pinInput").value;if(p.length<4){alert("Use at least 4 characters.");return}let h=await hash(p);if(data.pinHash){if(h!==data.pinHash){alert("That PIN is not correct.");return}}else{data.pinHash=h;save()}ownerUnlocked=true;$("pinDialog").close();render();showSettings()};
+$("pinForm").onsubmit=e=>{e.preventDefault();};
 function showSettings(){for(let k of ["bg","card","accent","text"])$(k+"Setting").value=data.colors[k];$("nameSetting").value=data.title;$("settingsDialog").showModal()}
 $("settingsBtn").onclick=openOwnerSettings;
 $("settingsForm").onsubmit=e=>{e.preventDefault();if(!ownerUnlocked)return;data.title=$("nameSetting").value.trim()||"Spanish Notes";for(let k of ["bg","card","accent","text"])data.colors[k]=$(k+"Setting").value;save();$("settingsDialog").close();render()};
