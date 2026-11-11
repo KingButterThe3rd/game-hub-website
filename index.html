@@ -552,6 +552,7 @@ body.home-prism::after{background-image:conic-gradient(from 45deg at 50% 50%,#ff
  <dialog id="channelDialog"><form id="channelForm"><h2>Add chat section</h2><div class="form-grid"><label>Section name<input id="channelNameInput" maxlength="35" required placeholder="general, gaming, memes"></label><label>Theme<select id="channelThemeInput"></select></label></div><div class="dialog-actions"><button type="button" class="secondary" data-close="channelDialog">Cancel</button><button type="submit">Create section</button></div></form></dialog>
  <dialog id="profileDialog"><form id="profileForm"><h2>Edit your profile</h2><div class="profile-edit-grid"><label>Bio<textarea id="profileBioInput" maxlength="280" rows="4" placeholder="Tell people about yourself"></textarea></label><label>Profile picture URL<input id="profileAvatarInput" type="url" placeholder="https://..."></label><label>Profile banner URL<input id="profileBannerInput" type="url" placeholder="https://..."></label><label>Profile theme<select id="profileThemeInput"></select></label></div><div class="dialog-actions"><button type="button" class="secondary" data-close="profileDialog">Cancel</button><button type="submit">Save profile</button></div></form></dialog>
  <dialog id="profilePeekDialog"><div id="profilePeekCard" class="chat-profile-card"></div><div class="dialog-actions"><button type="button" class="secondary" data-close="profilePeekDialog">Close</button></div></dialog>
+ <dialog id="aiAccessDialog"><form id="aiAccessForm"><h2>AI access</h2><p class="muted">Log in and enter the AI access code to use the assistant.</p><label>Access code<input id="aiAccessCode" type="password" autocomplete="off" required></label><div class="dialog-actions"><button type="button" class="secondary" data-close="aiAccessDialog">Cancel</button><button type="submit">Unlock AI</button></div></form></dialog>
 <dialog id="settingsDialog"><form id="settingsForm"><h2>Customize website</h2><div class="form-grid">
 <label>Website name<input id="nameSetting" maxlength="35"></label>
 <div class="color-row"><label>Background<input id="bgSetting" type="color"></label><label>Cards<input id="cardSetting" type="color"></label><label>Accent<input id="accentSetting" type="color"></label><label>Text<input id="textSetting" type="color"></label></div>
@@ -564,7 +565,7 @@ const fresh=()=>({title:"Spanish Notes",colors:{...DEFAULT_COLORS},folders:[],li
 let data;try{data=JSON.parse(localStorage.getItem(STORE))||fresh()}catch{data=fresh()}
 data={...fresh(),...data,colors:{...DEFAULT_COLORS,...(data.colors||{})},folders:data.folders||[],links:data.links||[],personal:data.personal||[],accounts:data.accounts||{},personalByUser:data.personalByUser||{},servers:data.servers||[]};
 const API_BASE='https://game-hub-backend-gold.vercel.app';
-let authToken=localStorage.getItem('gameHubAuthToken')||null;
+let authToken=localStorage.getItem('gameHubAuthToken')||null,aiToken=null;
 let adminToken=null,communityLinks=[];
 let loggedInUser=localStorage.getItem('gameHubUsername')||null,currentServerId=null;
 let ownerUnlocked=false,currentFolder=null,editingFolder=null,editingLink=null,editingPersonal=null;
@@ -694,8 +695,9 @@ function render(){
  $("browseEmpty").classList.toggle("hidden",currentFolder===null?folders.length>0:list.length>0);
 }
 function linkCard(l,personal){return `<article class="item"><div class="thumb">${l.image&&safeUrl(l.image)?`<img src="${esc(l.image)}" alt="" style="width:100%;height:100px;object-fit:cover">`:esc(l.emoji||"🌐")}</div><div class="item-body"><h3>${esc(l.name)}</h3><div class="muted">${personal?"Private to this browser":esc(data.folders.find(f=>f.id===l.folderId)?.name||"Folder")}</div><div class="actions"><a href="${esc(safeUrl(l.url)||"#")}" target="_blank" rel="noopener noreferrer">Open ↗</a>${personal?`<button class="secondary" data-edit-personal="${l.id}">Edit</button><button class="danger" data-del-personal="${l.id}">Delete</button>`:ownerUnlocked?`<button class="secondary" data-edit-link="${l.id}">Edit</button><button class="danger" data-del-link="${l.id}">Delete</button>`:""}</div></div></article>`}
- function setTab(tab){["browse","announcements","personal","account","chat","ai","customize"].forEach(name=>$(name+"View").classList.toggle("hidden",name!==tab));document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));if(tab==="chat")renderChat();if(tab==="announcements")loadAnnouncements();}
-document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+ async function unlockAi(){if(!loggedInUser){alert('Log in first to use AI.');setTab('account');return false}if(aiToken)return true;$('aiAccessCode').value='';$('aiAccessDialog').showModal();return false}
+ function setTab(tab){if(tab==='chat'&&!loggedInUser){alert('Log in first to access chat.');setTab('account');return}if(tab==='ai'&&!aiToken){unlockAi();return}["browse","announcements","personal","account","chat","ai","customize"].forEach(name=>$(name+"View").classList.toggle("hidden",name!==tab));document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));if(tab==="chat")renderChat();if(tab==="announcements")loadAnnouncements();}
+ document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 function openAuth(mode){
  $("signupPanel").classList.toggle("hidden",mode!=="signup");
  $("loginPanel").classList.toggle("hidden",mode!=="login");
@@ -725,14 +727,16 @@ async function api(path, options={}){
  const headers={'Content-Type':'application/json',...(options.headers||{})};
  if(authToken)headers.Authorization='Bearer '+authToken;
  if(adminToken)headers['X-Admin-Token']=adminToken;
+ if(aiToken)headers['X-AI-Token']=aiToken;
  const response=await fetch(API_BASE+path,{...options,headers});
  let result={};try{result=await response.json()}catch{}
  if(!response.ok)throw new Error(result.error||'The backend request failed.');
  return result;
 }
+ $('aiAccessForm').onsubmit=async e=>{e.preventDefault();try{const result=await api('/api/ai/unlock',{method:'POST',body:JSON.stringify({code:$('aiAccessCode').value})});aiToken=result.aiToken;$('aiAccessCode').value='';$('aiAccessDialog').close();setTab('ai')}catch(err){alert(err.message)}};
 async function loadAnnouncements(){try{const r=await api('/api/announcements');$('announcementList').innerHTML=(r.announcements||[]).map(a=>`<article class="item" style="padding:16px"><h3>${esc(a.title)}</h3><p>${esc(a.body).replace(/\n/g,'<br>')}</p><div class="muted">${new Date(a.created_at).toLocaleString()}</div></article>`).join('')||'<div class="muted">No announcements yet.</div>'}catch(e){$('announcementList').innerHTML='<div class="muted">'+esc(e.message)+'</div>'}}
 function storeSession(token,username){authToken=token;loggedInUser=username;localStorage.setItem('gameHubAuthToken',token);localStorage.setItem('gameHubUsername',username)}
-function clearSession(){authToken=null;loggedInUser=null;localStorage.removeItem('gameHubAuthToken');localStorage.removeItem('gameHubUsername');data.servers=[];currentServerId=null}
+function clearSession(){authToken=null;aiToken=null;loggedInUser=null;localStorage.removeItem('gameHubAuthToken');localStorage.removeItem('gameHubUsername');data.servers=[];currentServerId=null}
 async function loadServers(){
  const result=await api('/api/servers');
  data.servers=(result.servers||[]).map(s=>({id:s.id,name:s.name,invite:s.invite_code,theme:s.theme||'galactic',channels:[],currentChannelId:null}));
@@ -757,7 +761,7 @@ $('loginBtn').onclick=async()=>{
   try{const result=await api('/api/auth/login',{method:'POST',body:JSON.stringify({username,password})});storeSession(result.token,result.user.username);$('loginPass').value='';$('authDialog').close();render();setTab('chat');await loadServers();await loadCommunityLinks();if(result.mustChangePassword)passwordDialog.showModal()}
  catch(e){alert(e.message)}
 };
-const doLogout=()=>{clearSession();adminToken=null;communityLinks=[];render();setTab('account')};
+const doLogout=()=>{clearSession();adminToken=null;aiToken=null;communityLinks=[];render();setTab('account')};
 $('logoutBtn').onclick=doLogout;
 $('headerLogoutBtn').onclick=doLogout;
 function openOwnerSettings(){
@@ -866,7 +870,8 @@ $("launchDialog").showModal();
   method:'POST',
   headers:{
     'Content-Type':'application/json',
-    'Authorization':'Bearer '+authToken
+     'Authorization':'Bearer '+authToken,
+     'X-AI-Token':aiToken||''
   },
   body:JSON.stringify({messages:history.slice(-12)})
 });
