@@ -433,6 +433,7 @@ body.home-prism::after{background-image:conic-gradient(from 45deg at 50% 50%,#ff
  <div class="sidebar-title">GAME HUB</div>
  <button class="side-tab active" data-tab="browse">▦ Browse folders</button>
  <button class="side-tab" data-tab="announcements">Announcements</button>
+ <button class="side-tab" data-tab="proxy">Proxy Search</button>
  <button class="side-tab" data-tab="personal">◇ My private websites</button>
  <button class="side-tab" data-tab="chat">▤ Chat</button>
  <button class="side-tab" data-tab="ai">✦ AI</button>
@@ -515,6 +516,13 @@ body.home-prism::after{background-image:conic-gradient(from 45deg at 50% 50%,#ff
  <section id="announcementsView" class="hidden">
   <div class="section-head"><div><h2>Announcements</h2><div class="muted">News and updates from the Game Hub team.</div></div></div>
   <div id="announcementList" class="folder-grid"><div class="muted">Loading announcements...</div></div>
+ </section>
+ <section id="proxyView" class="hidden">
+  <div class="section-head"><div><h2>Proxy Search</h2><div class="muted">Search the web through a privacy-friendly search launcher.</div></div></div>
+  <div class="ai-workspace" style="min-height:0">
+   <form id="proxySearchForm" class="ai-compose"><select id="proxyEngine" aria-label="Search engine"><option value="https://duckduckgo.com/?q=">DuckDuckGo</option><option value="https://www.google.com/search?q=">Google</option><option value="https://www.bing.com/search?q=">Bing</option></select><input id="proxySearchInput" maxlength="300" placeholder="Search the web..." autocomplete="off" required><button type="submit">Search</button></form>
+   <p class="ai-footnote">Results open in a new tab. This search launcher does not bypass school, workplace, or network restrictions.</p>
+  </div>
  </section>
  <section id="personalView" class="hidden">
   <div class="section-head"><div><h2>My private websites</h2><div class="muted">Only saved in this browser profile on this device</div></div><button id="addPersonalBtn">＋ Add my website</button></div>
@@ -696,8 +704,9 @@ function render(){
 }
 function linkCard(l,personal){return `<article class="item"><div class="thumb">${l.image&&safeUrl(l.image)?`<img src="${esc(l.image)}" alt="" style="width:100%;height:100px;object-fit:cover">`:esc(l.emoji||"🌐")}</div><div class="item-body"><h3>${esc(l.name)}</h3><div class="muted">${personal?"Private to this browser":esc(data.folders.find(f=>f.id===l.folderId)?.name||"Folder")}</div><div class="actions"><a href="${esc(safeUrl(l.url)||"#")}" target="_blank" rel="noopener noreferrer">Open ↗</a>${personal?`<button class="secondary" data-edit-personal="${l.id}">Edit</button><button class="danger" data-del-personal="${l.id}">Delete</button>`:ownerUnlocked?`<button class="secondary" data-edit-link="${l.id}">Edit</button><button class="danger" data-del-link="${l.id}">Delete</button>`:""}</div></div></article>`}
  async function unlockAi(){if(!loggedInUser){alert('Log in first to use AI.');setTab('account');return false}if(aiToken)return true;$('aiAccessCode').value='';$('aiAccessDialog').showModal();return false}
- function setTab(tab){if(tab==='chat'&&!loggedInUser){alert('Log in first to access chat.');setTab('account');return}if(tab==='ai'&&!aiToken){unlockAi();return}["browse","announcements","personal","account","chat","ai","customize"].forEach(name=>$(name+"View").classList.toggle("hidden",name!==tab));document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));if(tab==="chat")renderChat();if(tab==="announcements")loadAnnouncements();}
+ function setTab(tab){if(tab==='chat'&&!loggedInUser){alert('Log in first to access chat.');setTab('account');return}if(tab==='ai'&&!aiToken){unlockAi();return}["browse","announcements","proxy","personal","account","chat","ai","customize"].forEach(name=>$(name+"View").classList.toggle("hidden",name!==tab));document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));if(tab==="chat")renderChat();if(tab==="announcements")loadAnnouncements();}
  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+ $('proxySearchForm').onsubmit=e=>{e.preventDefault();const query=$('proxySearchInput').value.trim();if(!query)return;window.open($('proxyEngine').value+encodeURIComponent(query),'_blank','noopener,noreferrer')};
 function openAuth(mode){
  $("signupPanel").classList.toggle("hidden",mode!=="signup");
  $("loginPanel").classList.toggle("hidden",mode!=="login");
