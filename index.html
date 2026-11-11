@@ -521,7 +521,7 @@ body.home-prism::after{background-image:conic-gradient(from 45deg at 50% 50%,#ff
   <div class="section-head"><div><h2>Proxy Search</h2><div class="muted">Search the web through a privacy-friendly search launcher.</div></div></div>
   <div class="ai-workspace" style="min-height:0">
    <form id="proxySearchForm" class="ai-compose"><select id="proxyEngine" aria-label="Search engine"><option value="https://duckduckgo.com/?q=">DuckDuckGo</option><option value="https://www.google.com/search?q=">Google</option><option value="https://www.bing.com/search?q=">Bing</option></select><input id="proxySearchInput" maxlength="300" placeholder="Search the web..." autocomplete="off" required><button type="submit">Search</button></form>
-   <p class="ai-footnote">Results open in a new tab. This search launcher does not bypass school, workplace, or network restrictions.</p>
+   <p class="ai-footnote">Results open in this tab. This search launcher does not bypass school, workplace, or network restrictions.</p>
   </div>
  </section>
  <section id="personalView" class="hidden">
@@ -706,7 +706,7 @@ function linkCard(l,personal){return `<article class="item"><div class="thumb">$
  async function unlockAi(){if(!loggedInUser){alert('Log in first to use AI.');setTab('account');return false}if(aiToken)return true;$('aiAccessCode').value='';$('aiAccessDialog').showModal();return false}
  function setTab(tab){if(tab==='chat'&&!loggedInUser){alert('Log in first to access chat.');setTab('account');return}if(tab==='ai'&&!aiToken){unlockAi();return}["browse","announcements","proxy","personal","account","chat","ai","customize"].forEach(name=>$(name+"View").classList.toggle("hidden",name!==tab));document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));if(tab==="chat")renderChat();if(tab==="announcements")loadAnnouncements();}
  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
- $('proxySearchForm').onsubmit=e=>{e.preventDefault();const query=$('proxySearchInput').value.trim();if(!query)return;window.open($('proxyEngine').value+encodeURIComponent(query),'_blank','noopener,noreferrer')};
+ $('proxySearchForm').onsubmit=e=>{e.preventDefault();const query=$('proxySearchInput').value.trim();if(!query)return;window.location.href=$('proxyEngine').value+encodeURIComponent(query)};
 function openAuth(mode){
  $("signupPanel").classList.toggle("hidden",mode!=="signup");
  $("loginPanel").classList.toggle("hidden",mode!=="login");
